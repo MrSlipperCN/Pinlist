@@ -5,6 +5,8 @@
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <local:UrgencyBrushConverter x:Key="UrgencyBrushConverter" />
+        <local:TaskContextDisplayConverter x:Key="TaskContextDisplayConverter" />
+        <local:TaskStatusTextConverter x:Key="TaskStatusTextConverter" />
         <Style x:Key="HeaderButton" TargetType="Button">
             <Setter Property="Width" Value="32" />
             <Setter Property="Height" Value="32" />
@@ -56,6 +58,20 @@
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
             <Setter Property="Background" Value="#3B3F48" />
             <Setter Property="Foreground" Value="#CDD2DC" />
+        </Style>
+        <Style x:Key="TaskDetailToolTip" TargetType="ToolTip">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HasDropShadow" Value="False" />
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="ComboBox">
             <Setter Property="Foreground" Value="#E1E3E8" />

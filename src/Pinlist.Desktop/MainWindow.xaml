@@ -27,7 +27,7 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
-                    <Button x:Name="AlwaysOnTopButton" ToolTip="Always on top: off"
+                    <Button x:Name="AlwaysOnTopButton" ToolTip="{DynamicResource Text.AlwaysOnTopOff}"
                             Style="{StaticResource HeaderButton}" Click="AlwaysOnTop_Click">
                         <Viewbox Width="16" Height="16" Stretch="Uniform"
                                  HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -42,15 +42,15 @@
                             </Canvas>
                         </Viewbox>
                     </Button>
-                    <Button ToolTip="Add task" Foreground="#DDE3FF" Style="{StaticResource HeaderButton}" Click="AddTask_Click">
+                    <Button ToolTip="{DynamicResource Text.AddTask}" Foreground="#DDE3FF" Style="{StaticResource HeaderButton}" Click="AddTask_Click">
                         <Path Data="M8,3 L8,13 M3,8 L13,8" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                               StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                     </Button>
-                    <Button x:Name="CollapseButton" ToolTip="Collapse" Style="{StaticResource HeaderButton}" Click="Collapse_Click">
+                    <Button x:Name="CollapseButton" ToolTip="{DynamicResource Text.Collapse}" Style="{StaticResource HeaderButton}" Click="Collapse_Click">
                         <Path x:Name="CollapseIcon" Data="M3,10 L8,5 L13,10" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                               StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
                     </Button>
-                    <Button ToolTip="Close to tray" Style="{StaticResource HeaderButton}" Click="Close_Click">
+                    <Button ToolTip="{DynamicResource Text.CloseToTray}" Style="{StaticResource HeaderButton}" Click="Close_Click">
                         <Path Data="M4,4 L12,12 M12,4 L4,12" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                               StrokeThickness="1.4" StrokeStartLineCap="Round"/>
                     </Button>
@@ -70,7 +70,7 @@
                         <Setter Property="ContextMenu">
                             <Setter.Value>
                                 <ContextMenu>
-                                    <MenuItem Header="Edit" Command="{x:Static ApplicationCommands.Properties}"/>
+                                    <MenuItem Header="{DynamicResource Text.Edit}" Command="{x:Static ApplicationCommands.Properties}"/>
                                 </ContextMenu>
                             </Setter.Value>
                         </Setter>
@@ -86,6 +86,9 @@
                                         <Trigger Property="IsSelected" Value="True">
                                             <Setter TargetName="DropTarget" Property="Background" Value="#224D7CFE"/>
                                         </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="DropTarget" Property="Background" Value="#184D7CFE"/>
+                                        </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Setter.Value>
@@ -95,10 +98,27 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Border x:Name="TaskCard" Background="#08FFFFFF" BorderBrush="#0FFFFFFF" BorderThickness="1"
-                                CornerRadius="10" Padding="10,9">
+                                CornerRadius="10" Padding="10,9" Cursor="Hand"
+                                ToolTipService.InitialShowDelay="280" ToolTipService.ShowDuration="60000">
+                            <Border.ToolTip>
+                                <ToolTip Style="{StaticResource TaskDetailToolTip}"
+                                         Placement="Mouse" HorizontalOffset="14" VerticalOffset="10">
+                                    <Border Background="#FF24272E" BorderBrush="#3D8FA8FF" BorderThickness="1"
+                                            CornerRadius="10" Padding="14" MaxWidth="420">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" Foreground="#F5F7FA" FontSize="14"
+                                                       FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{DynamicResource Text.Details}" Foreground="#8FA8FF"
+                                                       FontSize="10" FontWeight="SemiBold" Margin="0,11,0,5"/>
+                                            <TextBlock Text="{Binding Context, Converter={StaticResource TaskContextDisplayConverter}}"
+                                                       Foreground="#CDD2DC" FontSize="12" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+                                </ToolTip>
+                            </Border.ToolTip>
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/></Grid.ColumnDefinitions>
-                                <Button Tag="{Binding}" ToolTip="Mark complete" Style="{StaticResource HeaderButton}" Width="28" Height="28"
+                                <Button Tag="{Binding}" ToolTip="{DynamicResource Text.MarkComplete}" Style="{StaticResource HeaderButton}" Width="28" Height="28"
                                         Click="CompleteTask_Click">
                                     <Grid Width="16" Height="16">
                                         <Ellipse Stroke="#707783" StrokeThickness="1.4"/>
@@ -128,7 +148,7 @@
                                     <TextBlock Text="{Binding Context}" Foreground="#777D87" FontSize="11.5" Margin="14,4,0,0"
                                                MaxHeight="30" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
-                                <Button Grid.Column="2" Tag="{Binding}" ToolTip="Toggle important"
+                                <Button Grid.Column="2" Tag="{Binding}" ToolTip="{DynamicResource Text.ToggleImportant}"
                                         Width="28" Height="28" Click="ImportantTask_Click">
                                     <Path Data="M5,3 L12.5,3 L10.5,7 L12.5,11 L5,11 M5,2 L5,14"
                                           Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.4"
@@ -143,7 +163,13 @@
                             </Grid>
                             <Border.Style>
                                 <Style TargetType="Border">
-                                    <Style.Triggers><DataTrigger Binding="{Binding Status}" Value="Closed"><Setter Property="Opacity" Value="0.48"/></DataTrigger></Style.Triggers>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#204D7CFE"/>
+                                            <Setter Property="BorderBrush" Value="#668FA8FF"/>
+                                        </Trigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="Closed"><Setter Property="Opacity" Value="0.48"/></DataTrigger>
+                                    </Style.Triggers>
                                 </Style>
                             </Border.Style>
                         </Border>
@@ -157,9 +183,9 @@
                     <TextBlock Text="✓" Foreground="#69707C" FontSize="18"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
-                <TextBlock Text="Nothing pending" Foreground="#8A909A" FontSize="12.5"
+                <TextBlock Text="{DynamicResource Text.NothingPending}" Foreground="#8A909A" FontSize="12.5"
                            HorizontalAlignment="Center" Margin="0,12,0,0" />
-                <TextBlock Text="Use + or Alt+Shift+P to add a task" Foreground="#555B64" FontSize="10.5"
+                <TextBlock Text="{DynamicResource Text.AddHint}" Foreground="#555B64" FontSize="10.5"
                            HorizontalAlignment="Center" Margin="0,5,0,0" />
             </StackPanel>
             <Border x:Name="UndoBar" Grid.Row="1" Panel.ZIndex="5" Visibility="Collapsed"
@@ -167,7 +193,7 @@
                     Background="#F52A2D34" BorderBrush="#2FFFFFFF" BorderThickness="1" CornerRadius="10" Padding="12,7">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock x:Name="UndoText" Foreground="#D9DDE5" FontSize="11.5" VerticalAlignment="Center"/>
-                    <Button Content="Undo" Style="{StaticResource HeaderButton}" Width="46" Height="26" Margin="8,0,0,0"
+                    <Button Content="{DynamicResource Text.Undo}" Style="{StaticResource HeaderButton}" Width="46" Height="26" Margin="8,0,0,0"
                             Foreground="#9EB2FF" Click="Undo_Click"/>
                 </StackPanel>
             </Border>

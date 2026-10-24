@@ -46,7 +46,6 @@ public partial class MainWindow : Window
     private const uint ModAlt = 0x0001;
     private const uint ModShift = 0x0004;
     private const uint VirtualKeyP = 0x50;
-
     private readonly ObservableCollection<PinTask> _tasks = [];
     private readonly IPinTaskRepository _repository;
     private readonly AppSettingsStore _settingsStore;
@@ -58,6 +57,13 @@ public partial class MainWindow : Window
     private readonly Forms.ToolStripMenuItem _startWithWindowsMenuItem;
     private readonly Forms.ToolStripMenuItem _hotkeyMenuItem;
     private readonly Forms.ToolStripMenuItem _hideDuringFullscreenMenuItem;
+    private readonly Forms.ToolStripMenuItem _openMenuItem;
+    private readonly Forms.ToolStripMenuItem _quickAddMenuItem;
+    private readonly Forms.ToolStripMenuItem _historyMenuItem;
+    private readonly Forms.ToolStripMenuItem _languageMenuItem;
+    private readonly Forms.ToolStripMenuItem _englishMenuItem;
+    private readonly Forms.ToolStripMenuItem _chineseMenuItem;
+    private readonly Forms.ToolStripMenuItem _exitMenuItem;
     private PinTask? _selectedTask;
     private AppSettings _settings;
     private nint _windowHandle;
@@ -79,13 +85,13 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-
         var dataDirectory = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Pinlist");
         _repository = new SqlitePinTaskRepository(System.IO.Path.Combine(dataDirectory, "pinlist.db"));
         _settingsStore = new AppSettingsStore(System.IO.Path.Combine(dataDirectory, "settings.json"));
         _settings = _settingsStore.Load();
+        UiText.Apply(_settings.Language ?? UiText.DetectLanguage());
         _fullscreenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _fullscreenTimer.Tick += FullscreenTimer_Tick;
         _taskSyncTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
@@ -100,37 +106,50 @@ public partial class MainWindow : Window
             KeepVisibleWhenDesktopIsForeground();
         };
 
-        _startWithWindowsMenuItem = new Forms.ToolStripMenuItem("Start with Windows")
+        _startWithWindowsMenuItem = new Forms.ToolStripMenuItem(UiText.Get("StartWithWindows"))
         {
             CheckOnClick = true,
             Checked = StartupManager.IsEnabled()
         };
         _startWithWindowsMenuItem.CheckedChanged += StartWithWindowsMenuItem_CheckedChanged;
 
-        _hotkeyMenuItem = new Forms.ToolStripMenuItem("Global shortcut: Alt+Shift+P")
+        _hotkeyMenuItem = new Forms.ToolStripMenuItem(UiText.Get("GlobalShortcut"))
         {
             CheckOnClick = true,
             Checked = _settings.GlobalHotkeyEnabled
         };
         _hotkeyMenuItem.CheckedChanged += HotkeyMenuItem_CheckedChanged;
 
-        _hideDuringFullscreenMenuItem = new Forms.ToolStripMenuItem("Hide during fullscreen")
+        _hideDuringFullscreenMenuItem = new Forms.ToolStripMenuItem(UiText.Get("HideDuringFullscreen"))
         {
             CheckOnClick = true,
             Checked = _settings.HideDuringFullscreen
         };
         _hideDuringFullscreenMenuItem.CheckedChanged += HideDuringFullscreenMenuItem_CheckedChanged;
 
+        _openMenuItem = new Forms.ToolStripMenuItem(UiText.Get("OpenPinlist"), null, (_, _) => Dispatcher.Invoke(ShowFromTray));
+        _quickAddMenuItem = new Forms.ToolStripMenuItem(UiText.Get("QuickAdd"), null, (_, _) => Dispatcher.Invoke(ShowQuickAdd));
+        _historyMenuItem = new Forms.ToolStripMenuItem(UiText.Get("HistoryTitle"), null, (_, _) => Dispatcher.Invoke(ShowHistory));
+        _languageMenuItem = new Forms.ToolStripMenuItem(UiText.Get("Language"));
+        _englishMenuItem = new Forms.ToolStripMenuItem("English") { CheckOnClick = false };
+        _chineseMenuItem = new Forms.ToolStripMenuItem("简体中文") { CheckOnClick = false };
+        _englishMenuItem.Click += (_, _) => Dispatcher.Invoke(() => ChangeLanguage(UiText.English));
+        _chineseMenuItem.Click += (_, _) => Dispatcher.Invoke(() => ChangeLanguage(UiText.SimplifiedChinese));
+        _languageMenuItem.DropDownItems.Add(_englishMenuItem);
+        _languageMenuItem.DropDownItems.Add(_chineseMenuItem);
+        _exitMenuItem = new Forms.ToolStripMenuItem(UiText.Get("Exit"), null, (_, _) => Dispatcher.Invoke(ExitApplication));
+
         var trayMenu = new Forms.ContextMenuStrip();
-        trayMenu.Items.Add("Open Pinlist", null, (_, _) => Dispatcher.Invoke(ShowFromTray));
-        trayMenu.Items.Add("Quick add", null, (_, _) => Dispatcher.Invoke(ShowQuickAdd));
-        trayMenu.Items.Add("History & Trash", null, (_, _) => Dispatcher.Invoke(ShowHistory));
+        trayMenu.Items.Add(_openMenuItem);
+        trayMenu.Items.Add(_quickAddMenuItem);
+        trayMenu.Items.Add(_historyMenuItem);
         trayMenu.Items.Add(new Forms.ToolStripSeparator());
         trayMenu.Items.Add(_startWithWindowsMenuItem);
         trayMenu.Items.Add(_hotkeyMenuItem);
         trayMenu.Items.Add(_hideDuringFullscreenMenuItem);
+        trayMenu.Items.Add(_languageMenuItem);
         trayMenu.Items.Add(new Forms.ToolStripSeparator());
-        trayMenu.Items.Add("Exit", null, (_, _) => Dispatcher.Invoke(ExitApplication));
+        trayMenu.Items.Add(_exitMenuItem);
 
         _trayIcon = new Forms.NotifyIcon
         {
@@ -143,15 +162,58 @@ public partial class MainWindow : Window
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowFromTray);
 
         TaskList.ItemsSource = _tasks;
+        ApplyLocalizedText();
+    }
+
+    private void EnsureLanguageChosen()
+    {
+        if (!string.IsNullOrWhiteSpace(_settings.Language)) return;
+
+        var selector = new LanguageSelectionWindow
+        {
+            Owner = this,
+            Topmost = true
+        };
+        ChangeLanguage(selector.ShowDialog() == true
+            ? selector.SelectedLanguage
+            : UiText.DetectLanguage());
+    }
+
+    private void ChangeLanguage(string language)
+    {
+        var normalized = UiText.Normalize(language);
+        UiText.Apply(normalized);
+        _settings = _settings with { Language = normalized };
+        ApplyLocalizedText();
+        TrySaveSettings();
+    }
+
+    private void ApplyLocalizedText()
+    {
+        _openMenuItem.Text = UiText.Get("OpenPinlist");
+        _quickAddMenuItem.Text = UiText.Get("QuickAdd");
+        _historyMenuItem.Text = UiText.Get("HistoryTitle");
+        _startWithWindowsMenuItem.Text = UiText.Get("StartWithWindows");
+        _hotkeyMenuItem.Text = UiText.Get("GlobalShortcut");
+        _hideDuringFullscreenMenuItem.Text = UiText.Get("HideDuringFullscreen");
+        _languageMenuItem.Text = UiText.Get("Language");
+        _exitMenuItem.Text = UiText.Get("Exit");
+        _englishMenuItem.Checked = UiText.CurrentLanguage == UiText.English;
+        _chineseMenuItem.Checked = UiText.CurrentLanguage == UiText.SimplifiedChinese;
+        CollapseButton.ToolTip = UiText.Get(_isCollapsed ? "Expand" : "Collapse");
+        AlwaysOnTopButton.ToolTip = UiText.Get(_settings.AlwaysOnTop ? "AlwaysOnTopOn" : "AlwaysOnTopOff");
+        OpenCountText.Text = UiText.OpenCount(_tasks.Count(task => task.Status == PinTaskStatus.Open));
+        TaskList.Items.Refresh();
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
         _windowHandle = new WindowInteropHelper(this).Handle;
         RestoreWindowPlacement();
-        SetCollapsed(_settings.IsCollapsed);
+        SetCollapsed(true);
         ApplyAlwaysOnTop(_settings.AlwaysOnTop);
         UpdateWindowOpacity(animate: false);
+        EnsureLanguageChosen();
         _fullscreenTimer.Start();
         _taskSyncTimer.Start();
         _desktopHostTimer.Start();
@@ -161,7 +223,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowOperationError("Could not load tasks", exception);
+            ShowOperationError(UiText.Get("CouldNotLoadTasks"), exception);
         }
     }
 
@@ -304,7 +366,7 @@ public partial class MainWindow : Window
         _tasks.Clear();
         foreach (var task in tasks) _tasks.Add(task);
 
-        OpenCountText.Text = $"{openTasks.Count} open";
+        OpenCountText.Text = UiText.OpenCount(openTasks.Count);
         EmptyStatePanel.Visibility = _tasks.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (selectId is { } id)
             TaskList.SelectedItem = _tasks.FirstOrDefault(task => task.Id == id);
@@ -324,7 +386,7 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             _taskSyncTimer.Stop();
-            ShowOperationError("Background sync stopped", exception);
+            ShowOperationError(UiText.Get("BackgroundSyncStopped"), exception);
         }
     }
 
@@ -352,7 +414,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowOperationError("Could not save the task", exception);
+            ShowOperationError(UiText.Get("CouldNotSaveTask"), exception);
         }
         finally
         {
@@ -389,7 +451,7 @@ public partial class MainWindow : Window
             if (task.Status == PinTaskStatus.Closed) task.Restore(); else task.Close();
             await _repository.SaveAsync(task);
             await ReloadTasksAsync();
-            ShowUndo(originalStatus == PinTaskStatus.Closed ? "Task restored" : "Task completed", async () =>
+            ShowUndo(UiText.Get(originalStatus == PinTaskStatus.Closed ? "TaskRestored" : "TaskCompleted"), async () =>
             {
                 if (originalStatus == PinTaskStatus.Closed) task.Close(); else task.Restore();
                 await _repository.SaveAsync(task);
@@ -397,7 +459,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowOperationError("Could not update the task", exception);
+            ShowOperationError(UiText.Get("CouldNotUpdateTask"), exception);
         }
     }
 
@@ -411,7 +473,7 @@ public partial class MainWindow : Window
             task.SetImportant(!task.IsPinned);
             await _repository.SaveAsync(task);
             await ReloadTasksAsync();
-            ShowUndo(task.IsPinned ? "Marked important" : "Importance removed", async () =>
+            ShowUndo(UiText.Get(task.IsPinned ? "MarkedImportant" : "ImportanceRemoved"), async () =>
             {
                 task.SetImportant(wasImportant);
                 await _repository.SaveAsync(task);
@@ -419,7 +481,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowOperationError("Could not update importance", exception);
+            ShowOperationError(UiText.Get("CouldNotUpdateImportance"), exception);
         }
     }
 
@@ -465,11 +527,11 @@ public partial class MainWindow : Window
             await _repository.SaveOrderAsync(_tasks);
             _taskSnapshot = null;
             await ReloadTasksAsync();
-            ShowUndo("Order updated", () => _repository.SaveOrderAsync(previousOrder));
+            ShowUndo(UiText.Get("OrderUpdated"), () => _repository.SaveOrderAsync(previousOrder));
         }
         catch (Exception exception)
         {
-            ShowOperationError("Could not save the new order", exception);
+            ShowOperationError(UiText.Get("CouldNotSaveOrder"), exception);
             _taskSnapshot = null;
             await ReloadTasksAsync();
         }
@@ -530,6 +592,7 @@ public partial class MainWindow : Window
 
     private void ShowOperationError(string message, Exception exception)
     {
+        AppLog.Write($"{message}: {exception}");
         _trayIcon.BalloonTipTitle = "Pinlist";
         _trayIcon.BalloonTipText = $"{message}. {exception.Message}";
         _trayIcon.ShowBalloonTip(4000);
@@ -564,7 +627,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ShowOperationError("Could not undo the action", exception);
+            ShowOperationError(UiText.Get("CouldNotUndo"), exception);
         }
     }
 
@@ -623,18 +686,16 @@ public partial class MainWindow : Window
             TaskList.Visibility = Visibility.Collapsed;
             MinHeight = 56;
             Height = 56;
-            ResizeMode = ResizeMode.NoResize;
             CollapseIcon.Data = Geometry.Parse("M3,6 L8,11 L13,6");
-            CollapseButton.ToolTip = "Expand";
+            CollapseButton.ToolTip = UiText.Get("Expand");
         }
         else
         {
             TaskList.Visibility = Visibility.Visible;
-            ResizeMode = ResizeMode.CanResize;
             MinHeight = 420;
             Height = Math.Max(_expandedHeight, MinHeight);
             CollapseIcon.Data = Geometry.Parse("M3,10 L8,5 L13,10");
-            CollapseButton.ToolTip = "Collapse";
+            CollapseButton.ToolTip = UiText.Get("Collapse");
         }
 
         _isCollapsed = collapsed;
@@ -815,7 +876,7 @@ public partial class MainWindow : Window
             Topmost = false;
             ApplyDesktopOwnership();
         }
-        AlwaysOnTopButton.ToolTip = enabled ? "Always on top: on" : "Always on top: off";
+        AlwaysOnTopButton.ToolTip = UiText.Get(enabled ? "AlwaysOnTopOn" : "AlwaysOnTopOff");
         AlwaysOnTopButton.Foreground = enabled
             ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(143, 168, 255))
             : new SolidColorBrush(System.Windows.Media.Color.FromRgb(174, 179, 190));
@@ -875,7 +936,8 @@ public partial class MainWindow : Window
             _settings.HideDuringFullscreen,
             _startWithWindowsMenuItem.Checked,
             _settings.GlobalHotkeyEnabled,
-            _settings.AlwaysOnTop);
+            _settings.AlwaysOnTop,
+            _settings.Language);
         _settingsStore.Save(settings);
         _settings = settings;
     }

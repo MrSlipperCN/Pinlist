@@ -17,12 +17,13 @@ public partial class TaskEditorWindow : Window
     public TaskEditorWindow(PinTask? task = null)
     {
         InitializeComponent();
+        BorderlessResizeHelper.Enable(this);
         SetUrgency(task?.Urgency ?? TaskUrgency.Normal);
 
         if (task is not null)
         {
-            HeadingText.Text = "Edit task";
-            SaveButton.Content = "Save changes";
+            HeadingText.Text = UiText.Get("EditTask");
+            SaveButton.Content = UiText.Get("SaveChanges");
             TitleBox.Text = task.Title;
             ContextBox.Text = task.Context;
             PinnedBox.IsChecked = task.IsPinned;
@@ -43,7 +44,7 @@ public partial class TaskEditorWindow : Window
     {
         if (string.IsNullOrWhiteSpace(TitleBox.Text))
         {
-            StatusText.Text = "Give this task a title.";
+            StatusText.Text = UiText.Get("NeedTitle");
             TitleBox.Focus();
             return;
         }

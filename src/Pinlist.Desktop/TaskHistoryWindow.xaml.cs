@@ -12,6 +12,7 @@ public partial class TaskHistoryWindow : Window
     public TaskHistoryWindow(IPinTaskRepository repository)
     {
         InitializeComponent();
+        BorderlessResizeHelper.Enable(this);
         _repository = repository;
     }
 

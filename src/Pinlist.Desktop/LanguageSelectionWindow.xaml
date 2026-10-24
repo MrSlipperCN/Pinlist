@@ -1,0 +1,27 @@
+<Window x:Class="Pinlist.Desktop.LanguageSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Choose language / 选择语言" Icon="Assets/pinlist.ico"
+        Width="370" Height="240" ResizeMode="NoResize" WindowStyle="None"
+        AllowsTransparency="True" Background="Transparent" ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen">
+    <Border Background="#FF1B1D22" BorderBrush="#28FFFFFF" BorderThickness="1" CornerRadius="16" Padding="24">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="Choose language / 选择语言" Foreground="#F4F5F7"
+                       FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+            <TextBlock Grid.Row="1" Text="You can change this later from the tray menu.&#10;稍后可在托盘菜单中更改。"
+                       Foreground="#858B96" FontSize="11.5" TextAlignment="Center" Margin="0,12,0,0"/>
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Button Content="English" Style="{StaticResource SecondaryButton}" Width="126" Height="42"
+                        Click="English_Click"/>
+                <Button Content="简体中文" Style="{StaticResource PrimaryButton}" Width="126" Height="42"
+                        Margin="12,0,0,0" Click="Chinese_Click"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

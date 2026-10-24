@@ -12,18 +12,20 @@ public sealed record AppSettings(
     bool HideDuringFullscreen,
     bool StartWithWindows,
     bool GlobalHotkeyEnabled,
-    bool AlwaysOnTop)
+    bool AlwaysOnTop,
+    string? Language)
 {
     public static AppSettings Default { get; } = new(
         double.NaN,
         double.NaN,
-        380,
-        620,
-        false,
+        360,
+        560,
+        true,
         true,
         false,
         true,
-        false);
+        false,
+        null);
 }
 
 public sealed class AppSettingsStore
@@ -51,6 +53,10 @@ public sealed class AppSettingsStore
             if (!document.RootElement.TryGetProperty(nameof(AppSettings.AlwaysOnTop), out _))
             {
                 settings = settings with { AlwaysOnTop = false };
+            }
+            if (!document.RootElement.TryGetProperty(nameof(AppSettings.Language), out _))
+            {
+                settings = settings with { Language = null };
             }
             return settings;
         }

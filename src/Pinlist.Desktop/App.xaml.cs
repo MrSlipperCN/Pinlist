@@ -24,11 +24,19 @@ public partial class App : System.Windows.Application
     [STAThread]
     private static void Main(string[] args)
     {
-        VelopackApp.Build().Run();
+        try
+        {
+            VelopackApp.Build().Run();
 
-        var app = new App();
-        app.InitializeComponent();
-        app.Run();
+            var app = new App();
+            app.InitializeComponent();
+            app.Run();
+        }
+        catch (Exception exception)
+        {
+            AppLog.Write($"Fatal startup error: {exception}");
+            throw;
+        }
     }
 
     protected override void OnStartup(StartupEventArgs e)
