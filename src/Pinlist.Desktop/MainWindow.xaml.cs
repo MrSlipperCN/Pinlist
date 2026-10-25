@@ -150,6 +150,13 @@ public partial class MainWindow : Window
         trayMenu.Items.Add(_languageMenuItem);
         trayMenu.Items.Add(new Forms.ToolStripSeparator());
         trayMenu.Items.Add(_exitMenuItem);
+        trayMenu.BackColor = System.Drawing.Color.FromArgb(27, 29, 34);
+        trayMenu.ForeColor = System.Drawing.Color.FromArgb(221, 225, 233);
+        trayMenu.ShowImageMargin = false;
+        trayMenu.ShowCheckMargin = true;
+        trayMenu.Padding = new Forms.Padding(4);
+        trayMenu.Renderer = new PinlistToolStripRenderer();
+        ApplyTrayMenuColors(trayMenu.Items);
 
         _trayIcon = new Forms.NotifyIcon
         {
@@ -163,6 +170,25 @@ public partial class MainWindow : Window
 
         TaskList.ItemsSource = _tasks;
         ApplyLocalizedText();
+    }
+
+    private static void ApplyTrayMenuColors(Forms.ToolStripItemCollection items)
+    {
+        foreach (Forms.ToolStripItem item in items)
+        {
+            item.ForeColor = System.Drawing.Color.FromArgb(221, 225, 233);
+            if (item is not Forms.ToolStripMenuItem menuItem || !menuItem.HasDropDownItems) continue;
+            menuItem.DropDown.BackColor = System.Drawing.Color.FromArgb(27, 29, 34);
+            menuItem.DropDown.ForeColor = System.Drawing.Color.FromArgb(221, 225, 233);
+            menuItem.DropDown.Padding = new Forms.Padding(4);
+            menuItem.DropDown.Renderer = new PinlistToolStripRenderer();
+            if (menuItem.DropDown is Forms.ToolStripDropDownMenu dropDownMenu)
+            {
+                dropDownMenu.ShowImageMargin = false;
+                dropDownMenu.ShowCheckMargin = true;
+            }
+            ApplyTrayMenuColors(menuItem.DropDownItems);
+        }
     }
 
     private void EnsureLanguageChosen()
@@ -434,11 +460,47 @@ public partial class MainWindow : Window
 
     private async void EditTaskCommand_Executed(object sender, ExecutedRoutedEventArgs e)
     {
-        if (e.OriginalSource is not MenuItem menuItem
-            || ItemsControl.ItemsControlFromItemContainer(menuItem) is not ContextMenu { PlacementTarget: ListBoxItem item }) return;
-        _selectedTask = item.DataContext as PinTask;
+        _selectedTask = e.Parameter as PinTask ?? GetContextMenuTask(e.OriginalSource);
         if (_selectedTask is null) return;
         await ShowTaskDialogAsync(_selectedTask);
+    }
+
+    private void TaskContextCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+    {
+        e.CanExecute = e.Parameter is PinTask;
+        e.Handled = true;
+    }
+
+    private async void DeleteTaskCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        e.Handled = true;
+        var task = e.Parameter as PinTask ?? GetContextMenuTask(e.OriginalSource);
+        if (task is null) return;
+
+        try
+        {
+            var originalStatus = task.Status;
+            task.Trash();
+            await _repository.SaveAsync(task);
+            await ReloadTasksAsync();
+            ShowUndo(UiText.Get("TaskDeleted"), async () =>
+            {
+                if (originalStatus == PinTaskStatus.Closed) task.Close(); else task.Restore();
+                await _repository.SaveAsync(task);
+            });
+        }
+        catch (Exception exception)
+        {
+            ShowOperationError(UiText.Get("CouldNotDeleteTask"), exception);
+        }
+    }
+
+    private static PinTask? GetContextMenuTask(object? source)
+    {
+        if (source is not MenuItem menuItem
+            || ItemsControl.ItemsControlFromItemContainer(menuItem) is not ContextMenu { PlacementTarget: ListBoxItem item })
+            return null;
+        return item.DataContext as PinTask;
     }
 
     private async void CompleteTask_Click(object sender, RoutedEventArgs e)

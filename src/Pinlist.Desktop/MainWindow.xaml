@@ -9,7 +9,11 @@
         >
     <Window.CommandBindings>
         <CommandBinding Command="{x:Static ApplicationCommands.Properties}"
-                        Executed="EditTaskCommand_Executed" />
+                        Executed="EditTaskCommand_Executed"
+                        CanExecute="TaskContextCommand_CanExecute" />
+        <CommandBinding Command="{x:Static ApplicationCommands.Delete}"
+                        Executed="DeleteTaskCommand_Executed"
+                        CanExecute="TaskContextCommand_CanExecute" />
     </Window.CommandBindings>
     <Border x:Name="RootBorder" Background="#FA17181B" BorderBrush="#20FFFFFF" BorderThickness="1" CornerRadius="16">
         <Grid>
@@ -69,8 +73,15 @@
                         <Setter Property="BorderBrush" Value="Transparent"/>
                         <Setter Property="ContextMenu">
                             <Setter.Value>
-                                <ContextMenu>
-                                    <MenuItem Header="{DynamicResource Text.Edit}" Command="{x:Static ApplicationCommands.Properties}"/>
+                                <ContextMenu Style="{StaticResource PinlistContextMenu}">
+                                    <MenuItem Header="{DynamicResource Text.Edit}" Style="{StaticResource PinlistMenuItem}"
+                                              Command="{x:Static ApplicationCommands.Properties}"
+                                              CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType={x:Type ContextMenu}}}"
+                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType={x:Type ContextMenu}}}"/>
+                                    <MenuItem Header="{DynamicResource Text.Delete}" Style="{StaticResource PinlistMenuItem}"
+                                              Foreground="#F08B82" Command="{x:Static ApplicationCommands.Delete}"
+                                              CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType={x:Type ContextMenu}}}"
+                                              CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType={x:Type ContextMenu}}}"/>
                                 </ContextMenu>
                             </Setter.Value>
                         </Setter>
